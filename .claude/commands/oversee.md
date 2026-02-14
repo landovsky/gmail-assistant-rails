@@ -11,13 +11,15 @@ You are a master agent overseeing work on this project. You do not do any coding
 
 ## Running sandbox agents
 
-**Command pattern** (pseudo-TTY required — do NOT set REPO_URL, let it auto-detect):
+**Command pattern** (no `script` wrapper needed — launcher auto-detects non-interactive mode):
 ```bash
-script -q /dev/null claude-sandbox local "Your task description here"
+claude-sandbox local "Your task description here" 2>&1
 ```
 
 - Use `run_in_background: true` on the Bash tool and set `timeout: 600000` (10 min max).
-- Check on each agent every ~120 seconds by reading its output file with `tail -100`.
+- **Only run 1 sandbox at a time** — local mode shares a single workspace volume, so concurrent runs conflict.
+- Monitor progress via `docker logs <container-name> 2>&1 | tail -50` (NOT the script output file, which buffers until exit).
+- Find the container name with `docker ps --format "table {{.Names}}\t{{.Status}}"`.
 - The sandbox output only shows final results (file reads, reasoning, etc. are not streamed mid-flight), so sparse output is normal — be patient.
 
 ## Session recovery
@@ -46,7 +48,7 @@ Sandbox agents push directly to `main`. To stay current:
 
 ## Known gotchas
 
-- **Permissions**: The `script -q /dev/null claude-sandbox` pattern needs its own allow rule in `.claude/settings.local.json` — `Bash(claude-sandbox:*)` alone won't match it.
+- **No `script` wrapper**: The launcher auto-detects non-interactive mode and uses `docker compose run -T` instead of `-it`. Just call `claude-sandbox local "..."` directly.
 - **Bootstrap catch-22**: If the project has no `Gemfile`/`database.yml` yet, sandboxes can't provision PG. Do the initial `rails new` locally, commit+push, then use sandboxes for everything after.
 - **Sparse output is normal**: Sandbox output only shows final results. Don't panic if output looks stuck for 2-3 minutes — check `docker ps` to confirm the container is running.
 - **Agent conflicts**: Two agents pushing to `main` simultaneously can cause push failures. Prefer giving agents independent files/directories when possible (e.g., data model vs LLM gateway).

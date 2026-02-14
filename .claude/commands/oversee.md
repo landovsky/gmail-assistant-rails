@@ -52,3 +52,5 @@ Sandbox agents push directly to `main`. To stay current:
 - **Bootstrap catch-22**: If the project has no `Gemfile`/`database.yml` yet, sandboxes can't provision PG. Do the initial `rails new` locally, commit+push, then use sandboxes for everything after.
 - **Sparse output is normal**: Sandbox output only shows final results. Don't panic if output looks stuck for 2-3 minutes — check `docker ps` to confirm the container is running.
 - **Agent conflicts**: Two agents pushing to `main` simultaneously can cause push failures. Prefer giving agents independent files/directories when possible (e.g., data model vs LLM gateway).
+- **One agent at a time (local)**: Local sandbox agents share a single Docker Compose project and workspace volume. Run only 1 sandbox agent at a time. Clean up volumes between runs: `docker compose -f ~/.claude/claude-sandbox/docker-compose.yml --profile with-postgres --profile with-redis down -v`
+- **Beads not synced into sandbox**: The sandbox container doesn't have access to the local beads database. Don't rely on agents closing beads — close them from the overseer after verifying the work was pushed.

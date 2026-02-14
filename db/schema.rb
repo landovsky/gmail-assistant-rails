@@ -130,14 +130,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_14_231227) do
     t.check_constraint "call_type = ANY (ARRAY['classify'::text, 'draft'::text, 'rework'::text, 'context'::text, 'agent'::text])", name: "check_call_type"
   end
 
-  create_table "public.spatial_ref_sys", primary_key: "srid", id: :integer, default: nil, force: :cascade do |t|
-    t.string "auth_name", limit: 256
-    t.integer "auth_srid"
-    t.string "proj4text", limit: 2048
-    t.string "srtext", limit: 2048
-    t.check_constraint "srid > 0 AND srid <= 998999", name: "spatial_ref_sys_srid_check"
-  end
-
   create_table "public.sync_states", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.text "last_history_id", default: "0", null: false

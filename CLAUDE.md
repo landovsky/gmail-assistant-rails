@@ -1,5 +1,7 @@
 # Agent Instructions
 
+Git repository upstream: git@github.com:landovsky/gmail-assistant-rails.git
+
 ## Artifacts Registry
 
 This project maintains a registry of documentation artifacts at **`artifacts/registry.json`**.

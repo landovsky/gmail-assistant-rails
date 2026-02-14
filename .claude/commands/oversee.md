@@ -30,8 +30,23 @@ If starting a fresh session (after compaction, clear, or restart):
 4. Check for any running Docker containers: `docker ps --format "table {{.Names}}\t{{.Status}}"`.
 5. Resume oversight — launch new sandbox agents for any unfinished or ready work.
 
+## Staying in sync with agent work
+
+Sandbox agents push directly to `main`. To stay current:
+
+- Run `git fetch && git pull --rebase` **before** checking `bd ready` or launching new agents.
+- Run `bin/bd-sync` **after** pulling to pick up beads state changes made by agents.
+- Do this every check cycle (~120s), not just at session start.
+
 ## Work tracking
 
 - All tasks are tracked via beads (`bd ready`, `bd list`, `bd show <id>`).
 - Sandbox agents are instructed to pick up beads, mark them in_progress, and close them when done.
 - Use `bin/bd-sync` (not `bd sync`) to push beads state to remote.
+
+## Known gotchas
+
+- **Permissions**: The `script -q /dev/null claude-sandbox` pattern needs its own allow rule in `.claude/settings.local.json` — `Bash(claude-sandbox:*)` alone won't match it.
+- **Bootstrap catch-22**: If the project has no `Gemfile`/`database.yml` yet, sandboxes can't provision PG. Do the initial `rails new` locally, commit+push, then use sandboxes for everything after.
+- **Sparse output is normal**: Sandbox output only shows final results. Don't panic if output looks stuck for 2-3 minutes — check `docker ps` to confirm the container is running.
+- **Agent conflicts**: Two agents pushing to `main` simultaneously can cause push failures. Prefer giving agents independent files/directories when possible (e.g., data model vs LLM gateway).

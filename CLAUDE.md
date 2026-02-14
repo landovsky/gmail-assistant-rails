@@ -29,3 +29,9 @@ Each artifact entry contains:
 **Usage field:**
 - **`always`** - Must be read before any work (e.g., project overview, core conventions)
 - **`decide`** - Read when the artifact is relevant to your current task (e.g., testing conventions when writing tests, API patterns when building endpoints)
+
+## Beads Sync
+
+**IMPORTANT:** Do NOT use `bd sync` to sync beads to remote. It does not properly push changes, which prevents other agents from seeing each other's work.
+
+**Always use `bin/bd-sync`** instead. This script runs `bd sync --full`, commits any changes in the beads worktree, and pushes to the `beads-sync` remote branch.

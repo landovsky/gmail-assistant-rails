@@ -7,10 +7,10 @@ module Lifecycle
     def handle(email:, user:)
       return unless @gmail_client
 
-      thread_data = @gmail_client.get_thread(thread_id: email.gmail_thread_id)
+      thread_data = @gmail_client.get_thread_data(email.gmail_thread_id)
       return unless thread_data
 
-      current_message_count = thread_data[:message_count] || thread_data["message_count"] || 0
+      current_message_count = thread_data[:message_count] || 0
 
       if current_message_count > (email.message_count || 0)
         waiting_label = user.user_labels.find_by(label_key: "waiting")

@@ -1,4 +1,5 @@
 require "rails_helper"
+require "ostruct"
 
 RSpec.describe "Rework Loop", type: :request do
   let(:user) { create(:user, :onboarded) }
@@ -47,14 +48,14 @@ RSpec.describe "Rework Loop", type: :request do
                      rework_count: 0)
 
       # Mock fetching current draft - user wrote "make it shorter" above scissors marker
-      allow(gmail_client).to receive(:get_draft).and_return({
-        body: "make it shorter\n\n\u2702\uFE0F\n\nOriginal draft text here."
-      })
-      allow(gmail_client).to receive(:get_thread).and_return({
+      allow(gmail_client).to receive(:get_draft_body).and_return(
+        "make it shorter\n\n\u2702\uFE0F\n\nOriginal draft text here."
+      )
+      allow(gmail_client).to receive(:get_thread_data).and_return({
         body: "Hi, here's the project update."
       })
       allow(gmail_client).to receive(:trash_draft)
-      allow(gmail_client).to receive(:create_draft).and_return("draft_new_51")
+      allow(gmail_client).to receive(:create_draft).and_return(OpenStruct.new(id: "draft_new_51"))
       allow(gmail_client).to receive(:modify_thread)
       allow(gmail_client).to receive(:search_threads).and_return([])
 
@@ -97,12 +98,12 @@ RSpec.describe "Rework Loop", type: :request do
                      rework_count: 0)
 
       # Draft body has no user instruction above the scissors marker
-      allow(gmail_client).to receive(:get_draft).and_return({
-        body: "\n\n\u2702\uFE0F\n\nOriginal draft text."
-      })
-      allow(gmail_client).to receive(:get_thread).and_return({ body: "Let's schedule a meeting." })
+      allow(gmail_client).to receive(:get_draft_body).and_return(
+        "\n\n\u2702\uFE0F\n\nOriginal draft text."
+      )
+      allow(gmail_client).to receive(:get_thread_data).and_return({ body: "Let's schedule a meeting." })
       allow(gmail_client).to receive(:trash_draft)
-      allow(gmail_client).to receive(:create_draft).and_return("draft_new_52")
+      allow(gmail_client).to receive(:create_draft).and_return(OpenStruct.new(id: "draft_new_52"))
       allow(gmail_client).to receive(:modify_thread)
       allow(gmail_client).to receive(:search_threads).and_return([])
 
@@ -128,12 +129,12 @@ RSpec.describe "Rework Loop", type: :request do
                      detected_language: "en", draft_id: "draft_old_53",
                      rework_count: 2)
 
-      allow(gmail_client).to receive(:get_draft).and_return({
-        body: "be more formal\n\n\u2702\uFE0F\n\nPrevious draft."
-      })
-      allow(gmail_client).to receive(:get_thread).and_return({ body: "Please review the invoice." })
+      allow(gmail_client).to receive(:get_draft_body).and_return(
+        "be more formal\n\n\u2702\uFE0F\n\nPrevious draft."
+      )
+      allow(gmail_client).to receive(:get_thread_data).and_return({ body: "Please review the invoice." })
       allow(gmail_client).to receive(:trash_draft)
-      allow(gmail_client).to receive(:create_draft).and_return("draft_new_53")
+      allow(gmail_client).to receive(:create_draft).and_return(OpenStruct.new(id: "draft_new_53"))
       allow(gmail_client).to receive(:modify_thread)
       allow(gmail_client).to receive(:search_threads).and_return([])
 

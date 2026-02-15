@@ -29,10 +29,10 @@ RSpec.describe Lifecycle::ReworkHandler do
     create(:user_label, user: user, label_key: "outbox", gmail_label_id: "Label_outbox", gmail_label_name: "AI/Outbox")
     create(:user_label, user: user, label_key: "action_required", gmail_label_id: "Label_ar", gmail_label_name: "AI/Action Required")
 
-    allow(gmail_client).to receive(:get_draft).and_return({ body: "Fix the tone\n\n\u2702\uFE0F\n\nOld draft text" })
-    allow(gmail_client).to receive(:get_thread).and_return({ body: "Original thread body" })
+    allow(gmail_client).to receive(:get_draft_body).and_return("Fix the tone\n\n\u2702\uFE0F\n\nOld draft text")
+    allow(gmail_client).to receive(:get_thread_data).and_return({ body: "Original thread body" })
     allow(gmail_client).to receive(:trash_draft)
-    allow(gmail_client).to receive(:create_draft).and_return("new_draft_456")
+    allow(gmail_client).to receive(:create_draft).and_return(double(id: "new_draft_456"))
     allow(gmail_client).to receive(:modify_thread)
     allow(context_gatherer).to receive(:gather).and_return("")
     allow(draft_generator).to receive(:generate).and_return("\n\n\u2702\uFE0F\n\nNew draft text")
@@ -92,9 +92,9 @@ RSpec.describe Lifecycle::ReworkHandler do
 
         handler.handle(email: email, user: user)
 
-        expect(gmail_client).to have_received(:create_draft) do |args|
-          expect(args[:body]).to start_with("\u26A0\uFE0F This is the last automatic rework")
-        end
+        expect(gmail_client).to have_received(:create_draft).with(
+          hash_including(body: start_with("\u26A0\uFE0F This is the last automatic rework"))
+        )
       end
 
       it "moves labels from rework to action_required" do
@@ -152,7 +152,7 @@ RSpec.describe Lifecycle::ReworkHandler do
 
     context "no instructions above scissors marker" do
       before do
-        allow(gmail_client).to receive(:get_draft).and_return({ body: "\n\n\u2702\uFE0F\n\nJust the draft" })
+        allow(gmail_client).to receive(:get_draft_body).and_return("\n\n\u2702\uFE0F\n\nJust the draft")
       end
 
       it "uses default instruction text" do

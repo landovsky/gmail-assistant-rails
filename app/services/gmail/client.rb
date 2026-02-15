@@ -63,6 +63,48 @@ module Gmail
       end
     end
 
+    # Modify labels on all messages in a thread (batch operation)
+    def modify_thread(thread_id:, add_label_ids: [], remove_label_ids: [])
+      thread = get_thread(thread_id, format: "minimal")
+      return unless thread&.messages&.any?
+
+      message_ids = thread.messages.map(&:id)
+      batch_modify_messages(message_ids, add_label_ids: add_label_ids, remove_label_ids: remove_label_ids)
+    end
+
+    # Get thread data as a parsed hash with body, sender, subject, message_count
+    def get_thread_data(thread_id)
+      thread = get_thread(thread_id)
+      return nil unless thread&.messages&.any?
+
+      messages = thread.messages
+      first_message = messages.first
+      headers = self.class.parse_headers(first_message)
+      sender = self.class.parse_sender(headers["From"])
+
+      bodies = messages.map { |msg| self.class.extract_body(msg.payload) }
+      combined_body = bodies.reject(&:blank?).join("\n\n---\n\n")
+
+      {
+        thread_id: thread_id,
+        sender: "#{sender[:name]} <#{sender[:email]}>",
+        sender_name: sender[:name],
+        sender_email: sender[:email],
+        subject: headers["Subject"] || "",
+        body: combined_body,
+        message_count: messages.size,
+        messages: messages
+      }
+    end
+
+    # Search for threads matching a query, returns array of {thread_id:} hashes
+    def search_threads(query:, max_results: 10)
+      response = list_messages(query: query, max_results: max_results)
+      return [] unless response&.messages
+
+      response.messages.map { |msg| { thread_id: msg.thread_id } }.uniq { |h| h[:thread_id] }
+    end
+
     # --- Drafts ---
 
     def create_draft(to:, subject:, body:, thread_id: nil, in_reply_to: nil, references: nil, from: nil)
@@ -93,6 +135,28 @@ module Gmail
       with_retry do
         @service.delete_user_draft("me", draft_id)
       end
+    end
+
+    # Trash a draft (alias for delete_draft, named for clarity)
+    def trash_draft(draft_id:)
+      delete_draft(draft_id)
+    end
+
+    # Check if a draft still exists
+    def draft_exists?(draft_id:)
+      get_draft(draft_id)
+      true
+    rescue Google::Apis::ClientError => e
+      return false if e.status_code == 404 || e.message.include?("notFound")
+      raise
+    end
+
+    # Get draft body as parsed text
+    def get_draft_body(draft_id)
+      draft = get_draft(draft_id)
+      return nil unless draft&.message&.payload
+
+      self.class.extract_body(draft.message.payload)
     end
 
     def list_drafts(max_results: 100)

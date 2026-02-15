@@ -94,15 +94,31 @@ module Sync
         next unless message.label_ids&.include?("INBOX")
 
         thread_id = message.thread_id
-        job_type = route_message(message)
+
+        # Fetch full message for routing (need headers/body for match rules)
+        full_message = @client.get_message(message.id)
+        headers = Gmail::Client.parse_headers(full_message)
+        sender = Gmail::Client.parse_sender(headers["From"])
+        body = Gmail::Client.extract_body(full_message.payload)
+
+        email_data = {
+          sender_email: sender[:email],
+          subject: headers["Subject"] || "",
+          body: body,
+          headers: headers
+        }
+
+        route_result = router.route(email_data)
+        job_type = route_result["route"] == "agent" ? "agent_process" : "classify"
+
         job_key = [job_type, thread_id]
         next if seen_jobs.include?(job_key)
         seen_jobs.add(job_key)
 
         payload = { message_id: message.id, thread_id: thread_id }
         if job_type == "agent_process"
-          payload[:profile] = route_profile(message)
-          payload[:route_rule] = route_rule_name(message)
+          payload[:profile] = route_result["profile"] || "default"
+          payload[:route_rule] = route_result["name"] || "default"
         end
 
         enqueue_job(job_type, payload)
@@ -167,30 +183,8 @@ module Sync
       )
     end
 
-    def route_message(_message)
-      rules = AppConfig.routing["rules"] || []
-      rules.each do |rule|
-        if rule["route"] == "agent"
-          return "agent_process"
-        end
-      end
-      "classify"
-    end
-
-    def route_profile(_message)
-      rules = AppConfig.routing["rules"] || []
-      rules.each do |rule|
-        return rule.dig("agent", "profile") || "default" if rule["route"] == "agent"
-      end
-      "default"
-    end
-
-    def route_rule_name(_message)
-      rules = AppConfig.routing["rules"] || []
-      rules.each do |rule|
-        return rule["name"] if rule["route"] == "agent"
-      end
-      "default"
+    def router
+      @router ||= Agents::Router.new(AppConfig.routing["rules"] || [])
     end
 
     def user_label_id(key)

@@ -1,4 +1,5 @@
 require "rails_helper"
+require "ostruct"
 
 RSpec.describe "End-to-End Scenarios", type: :request do
   let(:user) { create(:user, :onboarded) }
@@ -136,10 +137,10 @@ RSpec.describe "End-to-End Scenarios", type: :request do
       )
 
       # Step 2: Rework - user writes instructions and applies Rework label
-      allow(gmail_client).to receive(:get_draft).and_return({ body: "Make it more formal\n\n\u2702\uFE0F\n\nOriginal draft" })
-      allow(gmail_client).to receive(:get_thread).and_return({ body: "Please review the contract terms." })
+      allow(gmail_client).to receive(:get_draft_body).and_return("Make it more formal\n\n\u2702\uFE0F\n\nOriginal draft")
+      allow(gmail_client).to receive(:get_thread_data).and_return({ body: "Please review the contract terms." })
       allow(gmail_client).to receive(:trash_draft)
-      allow(gmail_client).to receive(:create_draft).and_return("draft_e2e_2_rework")
+      allow(gmail_client).to receive(:create_draft).and_return(OpenStruct.new(id: "draft_e2e_2_rework"))
       allow(gmail_client).to receive(:modify_thread)
       allow(gmail_client).to receive(:search_threads).and_return([])
 

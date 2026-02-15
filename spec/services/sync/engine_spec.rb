@@ -19,6 +19,20 @@ RSpec.describe Sync::Engine do
   describe "#perform with incremental sync" do
     let!(:sync_state) { create(:sync_state, user: user, last_history_id: "1000") }
 
+    # Helper to build a full message mock for routing
+    def stub_full_message(msg_id, sender: "sender@example.com", subject: "Test")
+      from_header = double(name: "From", value: "#{sender}")
+      subject_header = double(name: "Subject", value: subject)
+      payload = double(
+        headers: [from_header, subject_header],
+        mime_type: "text/plain",
+        body: double(data: nil),
+        parts: nil
+      )
+      full_msg = double(payload: payload, snippet: "")
+      allow(gmail_client).to receive(:get_message).with(msg_id).and_return(full_msg)
+    end
+
     it "processes messagesAdded and creates classify jobs" do
       message = double(
         id: "msg_1",
@@ -38,6 +52,7 @@ RSpec.describe Sync::Engine do
       )
 
       allow(gmail_client).to receive(:list_history).and_return(response)
+      stub_full_message("msg_1")
 
       expect { engine.perform }.to change(Job, :count).by(1)
 
@@ -65,6 +80,8 @@ RSpec.describe Sync::Engine do
       )
 
       allow(gmail_client).to receive(:list_history).and_return(response)
+      stub_full_message("msg_1")
+      stub_full_message("msg_2")
 
       expect { engine.perform }.to change(Job, :count).by(1)
     end

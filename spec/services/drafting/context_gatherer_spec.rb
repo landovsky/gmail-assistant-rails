@@ -63,12 +63,12 @@ RSpec.describe Drafting::ContextGatherer do
           { thread_id: "thread_2" },
           { thread_id: "thread_3" }
         ])
-        allow(gmail_client).to receive(:get_thread).with(thread_id: "thread_2").and_return({
+        allow(gmail_client).to receive(:get_thread_data).with("thread_2").and_return({
           sender: "John <john@example.com>",
           subject: "Previous email",
           body: "Previous content"
         })
-        allow(gmail_client).to receive(:get_thread).with(thread_id: "thread_3").and_return({
+        allow(gmail_client).to receive(:get_thread_data).with("thread_3").and_return({
           sender: "John <john@example.com>",
           subject: "Another email",
           body: "Another content"

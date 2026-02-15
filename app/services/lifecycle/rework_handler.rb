@@ -18,8 +18,8 @@ module Lifecycle
       draft_body = fetch_current_draft(email)
       instruction = extract_instruction(draft_body)
 
-      thread_data = @gmail_client&.get_thread(thread_id: email.gmail_thread_id)
-      thread_body = thread_data&.dig(:body) || thread_data&.dig("body") || ""
+      thread_data = @gmail_client&.get_thread_data(email.gmail_thread_id)
+      thread_body = thread_data&.dig(:body) || ""
 
       related_context = @context_gatherer.gather(
         sender_email: email.sender_email,
@@ -50,11 +50,13 @@ module Lifecycle
       @gmail_client&.trash_draft(draft_id: email.draft_id) if email.draft_id.present?
 
       # Create new draft
-      new_draft_id = @gmail_client&.create_draft(
-        thread_id: email.gmail_thread_id,
+      new_draft = @gmail_client&.create_draft(
+        to: email.sender_email,
+        subject: email.subject,
         body: new_draft_body,
-        subject: "Re: #{email.subject}"
+        thread_id: email.gmail_thread_id
       )
+      new_draft_id = new_draft&.id
 
       # Move labels
       if new_count == REWORK_LIMIT
@@ -85,7 +87,7 @@ module Lifecycle
 
     def fetch_current_draft(email)
       return "" unless email.draft_id.present? && @gmail_client
-      @gmail_client.get_draft(draft_id: email.draft_id)&.dig(:body) || ""
+      @gmail_client.get_draft_body(email.draft_id) || ""
     rescue StandardError => e
       Rails.logger.warn("Failed to fetch draft for rework: #{e.message}")
       ""

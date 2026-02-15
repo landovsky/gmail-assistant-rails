@@ -23,6 +23,8 @@ RSpec.describe Jobs::WorkerPool do
       user = create(:user, :onboarded)
       job = create(:job, user: user, job_type: "classify", payload: { thread_id: "t1" }.to_json)
 
+      allow_any_instance_of(Jobs::ClassifyHandler).to receive(:perform)
+
       pool.start
       # Give worker time to pick up the job
       sleep(0.5)

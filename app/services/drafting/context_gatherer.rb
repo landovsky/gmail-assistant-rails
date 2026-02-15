@@ -65,7 +65,7 @@ module Drafting
           next if seen_thread_ids.include?(thread_id)
 
           seen_thread_ids.add(thread_id)
-          thread_data = @gmail_client.get_thread(thread_id: thread_id)
+          thread_data = @gmail_client.get_thread_data(thread_id)
           threads << thread_data if thread_data
           break if threads.size >= MAX_RELATED_THREADS
         end

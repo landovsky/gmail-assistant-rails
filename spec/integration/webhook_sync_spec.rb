@@ -38,6 +38,22 @@ RSpec.describe "Webhook & Sync", type: :request do
 
       allow(gmail_client).to receive(:list_history).and_return(history_response)
 
+      # Routing now fetches full message for match rules
+      from_header = OpenStruct.new(name: "From", value: "sender@example.com")
+      subject_header = OpenStruct.new(name: "Subject", value: "Test")
+      payload = OpenStruct.new(
+        headers: [from_header, subject_header],
+        mime_type: "text/plain",
+        body: OpenStruct.new(data: nil),
+        parts: nil
+      )
+      full_msg = OpenStruct.new(payload: payload, snippet: "")
+      allow(gmail_client).to receive(:get_message).with("msg1").and_return(full_msg)
+
+      allow(AppConfig).to receive(:routing).and_return({
+        "rules" => [{ "name" => "default", "match" => { "all" => true }, "route" => "pipeline" }]
+      })
+
       engine = Sync::Engine.new(user: user, gmail_client: gmail_client)
       engine.perform(history_id: "22222")
 
@@ -166,6 +182,24 @@ RSpec.describe "Webhook & Sync", type: :request do
       )
 
       allow(gmail_client).to receive(:list_history).and_return(history_response)
+
+      # Routing now fetches full message for match rules
+      from_header = OpenStruct.new(name: "From", value: "sender@example.com")
+      subject_header = OpenStruct.new(name: "Subject", value: "Test")
+      payload = OpenStruct.new(
+        headers: [from_header, subject_header],
+        mime_type: "text/plain",
+        body: OpenStruct.new(data: nil),
+        parts: nil
+      )
+      full_msg = OpenStruct.new(payload: payload, snippet: "")
+      allow(gmail_client).to receive(:get_message).with("msg1").and_return(full_msg)
+      allow(gmail_client).to receive(:get_message).with("msg2").and_return(full_msg)
+      allow(gmail_client).to receive(:get_message).with("msg3").and_return(full_msg)
+
+      allow(AppConfig).to receive(:routing).and_return({
+        "rules" => [{ "name" => "default", "match" => { "all" => true }, "route" => "pipeline" }]
+      })
 
       engine = Sync::Engine.new(user: user, gmail_client: gmail_client)
       engine.perform(history_id: "11111")

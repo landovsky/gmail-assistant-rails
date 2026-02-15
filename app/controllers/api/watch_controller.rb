@@ -1,9 +1,14 @@
 module Api
   class WatchController < ApplicationController
     def create
-      # Placeholder for watch registration
+      topic = AppConfig.sync["pubsub_topic"]
+      if topic.blank?
+        return render json: { detail: "No Pub/Sub topic configured" }, status: :bad_request
+      end
+
       if params[:user_id].present?
         user = User.find(params[:user_id])
+        register_watch_for(user)
         render json: {
           user_id: user.id,
           email: user.email,
@@ -12,6 +17,7 @@ module Api
       else
         users = User.active
         results = users.map do |user|
+          register_watch_for(user)
           {
             user_id: user.id,
             email: user.email,
@@ -36,6 +42,14 @@ module Api
         }
       end
       render json: states
+    end
+
+    private
+
+    def register_watch_for(user)
+      client = Gmail::Client.new(user_email: user.email)
+      manager = Gmail::WatchManager.new(client)
+      manager.register_watch(user)
     end
   end
 end

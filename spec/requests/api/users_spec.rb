@@ -131,5 +131,17 @@ RSpec.describe "Api::Users", type: :request do
       expect(body.length).to eq(1)
       expect(body.first["classification"]).to eq("fyi")
     end
+
+    it "filters by both status and classification simultaneously" do
+      create(:email, user: user, classification: "fyi", status: "pending")
+      create(:email, user: user, classification: "fyi", status: "drafted")
+      create(:email, user: user, classification: "needs_response", status: "pending")
+
+      get "/api/users/#{user.id}/emails", params: { status: "pending", classification: "fyi" }
+      body = JSON.parse(response.body)
+      expect(body.length).to eq(1)
+      expect(body.first["classification"]).to eq("fyi")
+      expect(body.first["status"]).to eq("pending")
+    end
   end
 end

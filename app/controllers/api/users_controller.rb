@@ -68,10 +68,9 @@ module Api
       user = User.find(params[:user_id])
       scope = user.emails
 
-      if params[:status].present?
-        scope = scope.by_status(params[:status])
-      elsif params[:classification].present?
-        scope = scope.by_classification(params[:classification])
+      if params[:status].present? || params[:classification].present?
+        scope = scope.by_status(params[:status]) if params[:status].present?
+        scope = scope.by_classification(params[:classification]) if params[:classification].present?
       else
         scope = scope.by_status("pending")
       end

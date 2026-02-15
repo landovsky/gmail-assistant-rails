@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+#
+# bd-sync - Reliable beads sync to remote
+#
+# Replaces `bd sync` which doesn't properly push to the remote branch,
+# preventing other agents from seeing each other's work.
+#
+# Usage: bin/bd-sync
+#
+
+set -euo pipefail
+
+wt="$(git rev-parse --git-dir)/beads-worktrees/beads-sync"
+
+if [ ! -d "$wt" ]; then
+  echo "Error: No beads worktree found at $wt"
+  exit 1
+fi
+
+bd sync --full
+
+git -C "$wt" add -A
+
+if ! git -C "$wt" diff --cached --quiet; then
+  git -C "$wt" commit -m "bd sync"
+fi
+
+git -C "$wt" push origin beads-sync
+
+echo "Beads synced to remote."

@@ -1,0 +1,16 @@
+styles:
+  business:
+    rules:
+      - "Keep the tone professional and courteous"
+      - "Use formal address"
+    sign_off: "Best regards"
+    language: auto
+    examples: []
+
+  casual:
+    rules:
+      - "Keep it relaxed and friendly"
+      - "Use first names"
+    sign_off: "Cheers"
+    language: auto
+    examples: []

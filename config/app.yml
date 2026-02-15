@@ -1,0 +1,47 @@
+auth:
+  mode: personal_oauth
+  credentials_file: config/credentials.json
+  token_file: config/token.json
+  service_account_file: config/service-account-key.json
+  scopes:
+    - https://www.googleapis.com/auth/gmail.modify
+
+database:
+  backend: sqlite
+
+llm:
+  classify_model: gemini/gemini-2.0-flash
+  draft_model: gemini/gemini-2.5-pro
+  context_model: gemini/gemini-2.0-flash
+  max_classify_tokens: 256
+  max_draft_tokens: 2048
+  max_context_tokens: 256
+
+sync:
+  pubsub_topic: ""
+  fallback_interval_minutes: 15
+  full_sync_interval_hours: 1
+  full_sync_days: 10
+  history_max_results: 100
+
+server:
+  host: 0.0.0.0
+  port: 8000
+  webhook_secret: ""
+  log_level: info
+  worker_concurrency: 3
+  admin_user: ""
+  admin_password: ""
+
+routing:
+  rules:
+    - name: default
+      match:
+        all: true
+      route: pipeline
+
+agent:
+  profiles: {}
+
+environment: development
+sentry_dsn: ""

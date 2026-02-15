@@ -21,24 +21,24 @@ module Sync
 
     def incremental_sync(sync_state, start_history_id)
       seen_jobs = Set.new
-      page_token = nil
+      last_response = nil
 
       loop do
-        response = @client.list_history(start_history_id, max_results: history_max_results)
+        last_response = @client.list_history(start_history_id, max_results: history_max_results)
 
-        if response&.history
-          response.history.each do |record|
+        if last_response&.history
+          last_response.history.each do |record|
             process_history_record(record, seen_jobs)
           end
         end
 
-        page_token = response&.next_page_token
+        page_token = last_response&.next_page_token
         break unless page_token
 
-        start_history_id = response.history_id
+        start_history_id = last_response.history_id
       end
 
-      new_history_id = response&.history_id || start_history_id
+      new_history_id = last_response&.history_id || start_history_id
       sync_state.update!(last_history_id: new_history_id.to_s, last_sync_at: Time.current)
     rescue Google::Apis::ClientError => e
       if e.message.include?("historyId")

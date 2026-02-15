@@ -12,6 +12,20 @@ Rails.application.routes.draw do
   # Defines the root path route ("/")
   # root "posts#index"
 
+  # API endpoints
+  namespace :api do
+    get "health", to: "health#show"
+  end
+
+  # Admin API endpoints
+  namespace :admin do
+    namespace :api do
+      get "emails", to: "emails#index"
+      get "jobs", to: "jobs#index"
+      get "sync_status", to: "sync_status#index"
+    end
+  end
+
   # Webhooks
   post "webhooks/gmail", to: "webhooks#gmail"
 end

@@ -13,5 +13,10 @@
     "filename": "artifacts/self-built-tooling.md",
     "description": "Guidelines for building development automation tools: Rule of Three, naming conventions, budgets, and documentation standards",
     "usage": "decide"
+  },
+  {
+    "filename": "artifacts/architecture.md",
+    "description": "System architecture in Rails context: runtime layout, request flow, database schema, service layer, pipeline, LLM integration, agent framework, API structure, configuration, test architecture, known limitations",
+    "usage": "always"
   }
 ]

@@ -88,6 +88,20 @@ module Classification
       # Apply Gmail label
       apply_classification_label(final_category)
 
+      # Enqueue draft job if classified as needs_response
+      if final_category == "needs_response"
+        DraftJob.enqueue_tracked(
+          user: @user,
+          job_type: "draft",
+          payload: { thread_id: @email.gmail_thread_id, message_id: @message.id },
+          user_id: @user.id,
+          gmail_thread_id: @email.gmail_thread_id
+        )
+      else
+        # Set status to skipped for non-response categories
+        @email.update!(status: "skipped")
+      end
+
       @email
     rescue => e
       Rails.logger.error "Classification failed for thread #{@email.gmail_thread_id}: #{e.class} - #{e.message}"

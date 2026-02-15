@@ -180,28 +180,56 @@ module Gmail
     end
 
     def enqueue_classify_job(message_id, thread_id)
-      # TODO: Implement job enqueuing when job system is available
-      Rails.logger.info "Would enqueue classify job for message #{message_id}, thread #{thread_id}"
+      ClassifyJob.enqueue_tracked(
+        user: user,
+        job_type: "classify",
+        payload: { message_id: message_id, thread_id: thread_id },
+        user_id: user.id,
+        gmail_thread_id: thread_id,
+        gmail_message_id: message_id
+      )
     end
 
     def enqueue_manual_draft_job(thread_id)
-      # TODO: Implement job enqueuing when job system is available
-      Rails.logger.info "Would enqueue manual_draft job for thread #{thread_id}"
+      DraftJob.enqueue_tracked(
+        user: user,
+        job_type: "manual_draft",
+        payload: { thread_id: thread_id },
+        user_id: user.id,
+        gmail_thread_id: thread_id
+      )
     end
 
     def enqueue_rework_job(thread_id)
-      # TODO: Implement job enqueuing when job system is available
-      Rails.logger.info "Would enqueue rework job for thread #{thread_id}"
+      ReworkJob.enqueue_tracked(
+        user: user,
+        job_type: "rework",
+        payload: { thread_id: thread_id },
+        user_id: user.id,
+        gmail_thread_id: thread_id
+      )
     end
 
     def enqueue_done_job(thread_id)
-      # TODO: Implement job enqueuing when job system is available
-      Rails.logger.info "Would enqueue done job for thread #{thread_id}"
+      CleanupJob.enqueue_tracked(
+        user: user,
+        job_type: "cleanup",
+        payload: { thread_id: thread_id, action: "done" },
+        user_id: user.id,
+        gmail_thread_id: thread_id,
+        action: "done"
+      )
     end
 
     def enqueue_cleanup_job(thread_id)
-      # TODO: Implement job enqueuing when job system is available
-      Rails.logger.info "Would enqueue cleanup job for thread #{thread_id}"
+      CleanupJob.enqueue_tracked(
+        user: user,
+        job_type: "cleanup",
+        payload: { thread_id: thread_id, action: "check_sent" },
+        user_id: user.id,
+        gmail_thread_id: thread_id,
+        action: "check_sent"
+      )
     end
 
     def user_label_id(label_key)

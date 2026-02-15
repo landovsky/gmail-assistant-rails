@@ -9,7 +9,30 @@
 #     priority: 2
 #     schedule: at 5am every day
 
+# Default configuration for all environments
+default: &default
+  # Fallback email sync - runs every 15 minutes
+  # Safety net for missed Pub/Sub notifications
+  sync_fallback:
+    command: "SyncJob.sync_all_users"
+    schedule: every 15 minutes
+    queue: default
+
+  # Daily cleanup of old completed/failed jobs
+  # Removes jobs older than 7 days
+  cleanup_old_jobs:
+    command: "CleanupJob.cleanup_old_jobs(7)"
+    schedule: every day at 2am
+    queue: default
+
 production:
+  <<: *default
   clear_solid_queue_finished_jobs:
     command: "SolidQueue::Job.clear_finished_in_batches(sleep_between_batches: 0.3)"
     schedule: every hour at minute 12
+
+development:
+  <<: *default
+
+test:
+  # No recurring jobs in test environment

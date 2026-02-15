@@ -34,8 +34,9 @@ module Llm
     # @param messages [Array<Hash>] Array of message objects with :role and :content
     # @param temperature [Float] Sampling temperature (0.0-2.0)
     # @param max_tokens [Integer] Maximum tokens to generate
+    # @param tools [Array<Hash>] Optional array of tool specifications for function calling
     # @return [Hash] Response body with :choices, :usage, etc.
-    def complete(model:, messages:, temperature: 0.7, max_tokens: nil)
+    def complete(model:, messages:, temperature: 0.7, max_tokens: nil, tools: nil)
       with_retry do
         request_body = {
           model: model,
@@ -43,6 +44,7 @@ module Llm
           temperature: temperature
         }
         request_body[:max_tokens] = max_tokens if max_tokens
+        request_body[:tools] = tools if tools && tools.any?
 
         response = post("/v1/chat/completions", request_body)
         parse_response(response)

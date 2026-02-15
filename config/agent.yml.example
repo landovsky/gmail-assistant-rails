@@ -1,0 +1,84 @@
+# Agent Framework Configuration
+#
+# This file configures email routing and agent profiles for the agent framework.
+# Copy to agent.yml and customize for your use case.
+
+# Routing rules - evaluated in order, first match wins
+routing:
+  rules:
+    # Example: Route pharmacy support emails to pharmacy agent
+    - name: pharmacy_support
+      match:
+        forwarded_from: "info@dostupnost-leku.cz"
+      route: agent
+      profile: pharmacy
+
+    # Example: Route specific sender to agent
+    - name: vip_customer
+      match:
+        sender_email: "vip@example.com"
+      route: agent
+      profile: customer_support
+
+    # Example: Route by domain
+    - name: partner_domain
+      match:
+        sender_domain: "partner.com"
+      route: agent
+      profile: partner_support
+
+    # Example: Route by subject keyword
+    - name: urgent_issues
+      match:
+        subject_contains: "URGENT"
+      route: agent
+      profile: urgent_support
+
+    # Default: All other emails go through standard pipeline
+    - name: default
+      match:
+        all: true
+      route: pipeline
+
+# Agent profiles - each profile defines an agent configuration
+agent:
+  profiles:
+    # Example pharmacy agent profile
+    pharmacy:
+      model: gemini/gemini-2.0-flash-exp
+      max_tokens: 4096
+      temperature: 0.3
+      max_iterations: 10
+      preprocessor: crisp  # Use Crisp preprocessor for this profile
+      system_prompt_file: config/prompts/pharmacy.txt
+      tools:
+        - search_drugs
+        - manage_reservation
+        - web_search
+        - send_reply
+        - create_draft
+        - escalate
+
+    # Example general customer support profile
+    customer_support:
+      model: gemini/gemini-2.0-flash-exp
+      max_tokens: 4096
+      temperature: 0.3
+      max_iterations: 10
+      system_prompt_file: config/prompts/customer_support.txt
+      tools:
+        - search_mailbox
+        - apply_label
+        - create_draft
+
+    # Example partner support profile
+    partner_support:
+      model: gemini/gemini-2.0-flash-exp
+      max_tokens: 4096
+      temperature: 0.3
+      max_iterations: 10
+      system_prompt_file: config/prompts/partner_support.txt
+      tools:
+        - search_mailbox
+        - apply_label
+        - create_draft

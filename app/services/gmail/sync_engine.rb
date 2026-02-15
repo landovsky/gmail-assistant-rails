@@ -180,14 +180,50 @@ module Gmail
     end
 
     def enqueue_classify_job(message_id, thread_id)
-      ClassifyJob.enqueue_tracked(
-        user: user,
-        job_type: "classify",
-        payload: { message_id: message_id, thread_id: thread_id },
-        user_id: user.id,
-        gmail_thread_id: thread_id,
-        gmail_message_id: message_id
-      )
+      # Check routing if agent config exists
+      route = determine_route(message_id)
+
+      if route[:route] == "agent"
+        # Enqueue agent processing job
+        AgentProcessJob.enqueue_tracked(
+          user: user,
+          job_type: "agent_process",
+          payload: { message_id: message_id, thread_id: thread_id, profile: route[:profile] },
+          user_id: user.id,
+          gmail_thread_id: thread_id,
+          gmail_message_id: message_id,
+          profile_name: route[:profile]
+        )
+      else
+        # Default to classify job
+        ClassifyJob.enqueue_tracked(
+          user: user,
+          job_type: "classify",
+          payload: { message_id: message_id, thread_id: thread_id },
+          user_id: user.id,
+          gmail_thread_id: thread_id,
+          gmail_message_id: message_id
+        )
+      end
+    end
+
+    def determine_route(message_id)
+      # Check if agent config exists
+      config_path = Rails.root.join("config", "agent.yml")
+      return { route: "pipeline" } unless File.exist?(config_path)
+
+      begin
+        config = YAML.load_file(config_path)
+        return { route: "pipeline" } unless config&.dig("routing", "rules")
+
+        # Fetch message to check routing
+        message = client.get_message(message_id)
+        router = Agent::Router.new(config)
+        router.route_for(message)
+      rescue StandardError => e
+        Rails.logger.warn "Routing check failed, defaulting to pipeline: #{e.message}"
+        { route: "pipeline" }
+      end
     end
 
     def enqueue_manual_draft_job(thread_id)

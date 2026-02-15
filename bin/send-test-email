@@ -1,0 +1,57 @@
+#!/usr/bin/env ruby
+
+require_relative "../config/environment"
+
+def usage
+  puts <<~HELP
+    Usage: bin/send-test-email [OPTIONS]
+
+    Send realistic test emails (in Czech) to exercise the classification pipeline.
+
+    Options:
+      --kind KIND        Email category: needs_response, action_required, payment_request, fyi, waiting
+      --style STYLE      Tone: formal, casual, terse, verbose
+      --recipient EMAIL  Recipient email (default: first active user)
+      --count N          Number of emails to send (default: 1)
+      --delay N          Delay in seconds between sends (default: 5)
+      --help             Show this help message
+
+    If kind/style are omitted, they are chosen randomly.
+  HELP
+  exit
+end
+
+usage if ARGV.include?("--help")
+
+kind = ARGV.index("--kind") ? ARGV[ARGV.index("--kind") + 1] : nil
+style = ARGV.index("--style") ? ARGV[ARGV.index("--style") + 1] : nil
+recipient = ARGV.index("--recipient") ? ARGV[ARGV.index("--recipient") + 1] : nil
+count = (ARGV.index("--count") ? ARGV[ARGV.index("--count") + 1] : "1").to_i
+delay = (ARGV.index("--delay") ? ARGV[ARGV.index("--delay") + 1] : "5").to_i
+
+KINDS = %w[needs_response action_required payment_request fyi waiting].freeze
+STYLES = %w[formal casual terse verbose].freeze
+
+recipient ||= User.active.first&.email || abort("No active users found and no --recipient specified")
+
+count.times do |i|
+  current_kind = kind || KINDS.sample
+  current_style = style || STYLES.sample
+
+  puts "Sending email #{i + 1}/#{count}: kind=#{current_kind}, style=#{current_style}, to=#{recipient}"
+
+  begin
+    TestEmailSender.send(
+      recipient: recipient,
+      kind: current_kind,
+      style: current_style
+    )
+    puts "  Sent successfully."
+  rescue => e
+    puts "  Error: #{e.message}"
+  end
+
+  sleep(delay) if i < count - 1 && count > 1
+end
+
+puts "Done."

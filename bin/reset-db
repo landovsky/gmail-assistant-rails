@@ -1,0 +1,79 @@
+#!/usr/bin/env ruby
+
+require_relative "../config/environment"
+require "net/http"
+require "json"
+
+def usage
+  puts <<~HELP
+    Usage: bin/reset-db [OPTIONS]
+
+    Clear all transient data from the database (jobs, emails, events, llm_calls, sync_state).
+    Preserves users, labels, and settings.
+
+    Options:
+      --env ENV      Target environment: dev (default) or production (required)
+      --help         Show this help message
+
+    Production requires GMA_SERVER_ADMIN_USER and GMA_SERVER_ADMIN_PASSWORD env vars.
+  HELP
+  exit
+end
+
+usage if ARGV.include?("--help")
+
+env = ARGV.index("--env") ? ARGV[ARGV.index("--env") + 1] : "dev"
+
+base_url = case env
+when "production"
+  "https://gmail.kopernici.cz"
+when "dev"
+  "http://localhost:3000"
+else
+  abort "Unknown environment: #{env}. Use 'dev' or 'production'."
+end
+
+if env == "production"
+  admin_user = ENV["GMA_SERVER_ADMIN_USER"]
+  admin_pass = ENV["GMA_SERVER_ADMIN_PASSWORD"]
+  abort "Production requires GMA_SERVER_ADMIN_USER and GMA_SERVER_ADMIN_PASSWORD" unless admin_user && admin_pass
+
+  print "You are about to reset PRODUCTION data. Type 'yes' to confirm: "
+  abort "Aborted." unless $stdin.gets&.chomp == "yes"
+end
+
+# Health check
+puts "Checking server health at #{base_url}..."
+begin
+  uri = URI("#{base_url}/api/health")
+  response = Net::HTTP.get_response(uri)
+  abort "Server health check failed: #{response.code}" unless response.code == "200"
+  puts "Server is healthy."
+rescue => e
+  abort "Cannot reach server: #{e.message}"
+end
+
+puts "Resetting transient data..."
+uri = URI("#{base_url}/api/reset")
+http = Net::HTTP.new(uri.host, uri.port)
+http.use_ssl = uri.scheme == "https"
+
+request = Net::HTTP::Post.new(uri.path, "Content-Type" => "application/json")
+if env == "production"
+  request.basic_auth(ENV["GMA_SERVER_ADMIN_USER"], ENV["GMA_SERVER_ADMIN_PASSWORD"])
+end
+
+response = http.request(request)
+if response.code.start_with?("2")
+  result = JSON.parse(response.body)
+  puts "Reset complete."
+  if result.is_a?(Hash)
+    result.each { |table, count| puts "  #{table}: #{count} rows deleted" }
+  else
+    puts "  #{result}"
+  end
+else
+  abort "Reset failed: #{response.code} #{response.body}"
+end
+
+puts "Done."

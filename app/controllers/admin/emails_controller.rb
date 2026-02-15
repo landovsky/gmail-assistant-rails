@@ -8,5 +8,10 @@ module Admin
       result = paginate(scope)
       render json: result
     end
+
+    def show
+      email = Email.find(params[:id])
+      render json: email
+    end
   end
 end

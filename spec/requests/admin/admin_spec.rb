@@ -32,6 +32,20 @@ RSpec.describe "Admin endpoints", type: :request do
     end
   end
 
+  describe "GET /admin/users/:id" do
+    it "returns a single user" do
+      get "/admin/users/#{user.id}"
+      expect(response).to have_http_status(:ok)
+      body = JSON.parse(response.body)
+      expect(body["email"]).to eq("admin-test@example.com")
+    end
+
+    it "returns 404 for non-existent user" do
+      get "/admin/users/999999"
+      expect(response).to have_http_status(:not_found)
+    end
+  end
+
   describe "GET /admin/emails" do
     it "returns emails with filtering" do
       create(:email, user: user, status: "pending")
@@ -40,6 +54,16 @@ RSpec.describe "Admin endpoints", type: :request do
       get "/admin/emails", params: { status: "drafted" }
       body = JSON.parse(response.body)
       expect(body["total"]).to eq(1)
+    end
+  end
+
+  describe "GET /admin/emails/:id" do
+    it "returns a single email" do
+      email = create(:email, user: user)
+      get "/admin/emails/#{email.id}"
+      expect(response).to have_http_status(:ok)
+      body = JSON.parse(response.body)
+      expect(body["id"]).to eq(email.id)
     end
   end
 
@@ -67,6 +91,26 @@ RSpec.describe "Admin endpoints", type: :request do
       get "/admin/jobs"
       body = JSON.parse(response.body)
       expect(body["total"]).to eq(1)
+    end
+  end
+
+  describe "GET /admin/jobs/:id" do
+    it "returns a single job" do
+      job = create(:job, user: user)
+      get "/admin/jobs/#{job.id}"
+      expect(response).to have_http_status(:ok)
+      body = JSON.parse(response.body)
+      expect(body["id"]).to eq(job.id)
+    end
+  end
+
+  describe "GET /admin/llm_calls/:id" do
+    it "returns a single llm call" do
+      llm_call = create(:llm_call, user: user)
+      get "/admin/llm_calls/#{llm_call.id}"
+      expect(response).to have_http_status(:ok)
+      body = JSON.parse(response.body)
+      expect(body["id"]).to eq(llm_call.id)
     end
   end
 

@@ -40,13 +40,13 @@ Rails.application.routes.draw do
 
   # Admin
   namespace :admin do
-    resources :users, only: [ :index ]
-    resources :emails, only: [ :index ]
-    resources :email_events, only: [ :index ]
-    resources :llm_calls, only: [ :index ]
-    resources :jobs, only: [ :index ]
-    resources :user_labels, only: [ :index ]
-    resources :user_settings, only: [ :index ]
-    resources :sync_states, only: [ :index ]
+    resources :users, only: [ :index, :show ]
+    resources :emails, only: [ :index, :show ]
+    resources :email_events, only: [ :index, :show ]
+    resources :llm_calls, only: [ :index, :show ]
+    resources :jobs, only: [ :index, :show ]
+    resources :user_labels, only: [ :index, :show ]
+    resources :user_settings, only: [ :index, :show ]
+    resources :sync_states, only: [ :index, :show ]
   end
 end

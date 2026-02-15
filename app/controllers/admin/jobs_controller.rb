@@ -8,5 +8,10 @@ module Admin
       result = paginate(scope)
       render json: result
     end
+
+    def show
+      job = Job.find(params[:id])
+      render json: job
+    end
   end
 end

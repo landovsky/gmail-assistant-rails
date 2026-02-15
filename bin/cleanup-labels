@@ -1,0 +1,80 @@
+#!/usr/bin/env ruby
+
+require_relative "../config/environment"
+
+def usage
+  puts <<~HELP
+    Usage: bin/cleanup-labels [OPTIONS]
+
+    Remove all AI labels from inbox messages.
+
+    Options:
+      --delete       Actually strip labels (default: dry run)
+      --user EMAIL   Target a specific user (default: all active users)
+      --help         Show this help message
+
+    By default runs in dry-run mode showing a sample of affected messages.
+  HELP
+  exit
+end
+
+delete_mode = ARGV.include?("--delete")
+user_email = ARGV.index("--user") ? ARGV[ARGV.index("--user") + 1] : nil
+usage if ARGV.include?("--help")
+
+AI_LABEL_PREFIX = "AI"
+BATCH_SIZE = 50
+
+users = if user_email
+  [User.find_by!(email: user_email)]
+else
+  User.active.to_a
+end
+
+users.each do |user|
+  puts "Processing user: #{user.email}"
+
+  begin
+    client = Gmail::Client.new(user)
+    ai_labels = user.user_labels.where("gmail_label_name LIKE ?", "%#{AI_LABEL_PREFIX}%")
+
+    if ai_labels.empty?
+      puts "  No AI labels found"
+      next
+    end
+
+    label_ids = ai_labels.pluck(:gmail_label_id)
+    puts "  AI labels: #{ai_labels.pluck(:gmail_label_name).join(', ')}"
+
+    total_affected = 0
+    label_ids.each do |label_id|
+      messages = client.list_messages(label_ids: [label_id])
+      count = messages&.size || 0
+      total_affected += count
+
+      if !delete_mode && count > 0
+        sample = messages.first(10)
+        sample.each do |msg|
+          detail = client.get_message(msg.id, format: "metadata", metadata_headers: ["Subject"])
+          subject = detail.payload&.headers&.find { |h| h.name == "Subject" }&.value || "(no subject)"
+          puts "  Sample: #{subject}"
+        end
+      end
+
+      if delete_mode && count > 0
+        messages.each_slice(BATCH_SIZE) do |batch|
+          msg_ids = batch.map(&:id)
+          client.batch_modify_messages(msg_ids, remove_label_ids: [label_id])
+        end
+        puts "  Removed label #{label_id} from #{count} messages"
+      end
+    end
+
+    puts "  Total affected messages: #{total_affected}"
+    puts "  Dry run - use --delete to actually strip labels" unless delete_mode
+  rescue => e
+    puts "  Error: #{e.message}"
+  end
+end
+
+puts "Done."

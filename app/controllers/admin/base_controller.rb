@@ -1,6 +1,12 @@
 module Admin
   class BaseController < ApplicationController
+    rescue_from ActiveRecord::RecordNotFound, with: :not_found
+
     private
+
+    def not_found
+      render json: { error: "Not found" }, status: :not_found
+    end
 
     def paginate(scope)
       limit = [ (params[:limit] || 50).to_i, 500 ].min

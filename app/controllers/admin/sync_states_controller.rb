@@ -5,5 +5,10 @@ module Admin
       result = paginate(scope)
       render json: result
     end
+
+    def show
+      sync_state = SyncState.find(params[:id])
+      render json: sync_state
+    end
   end
 end

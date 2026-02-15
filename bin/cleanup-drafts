@@ -1,0 +1,67 @@
+#!/usr/bin/env ruby
+
+require_relative "../config/environment"
+
+def usage
+  puts <<~HELP
+    Usage: bin/cleanup-drafts [OPTIONS]
+
+    Remove AI-generated Gmail drafts containing the rework marker.
+
+    Options:
+      --delete       Actually trash matching drafts (default: dry run)
+      --user EMAIL   Target a specific user (default: all active users)
+      --help         Show this help message
+
+    By default runs in dry-run mode showing matching drafts without deleting.
+  HELP
+  exit
+end
+
+delete_mode = ARGV.include?("--delete")
+user_email = ARGV.index("--user") ? ARGV[ARGV.index("--user") + 1] : nil
+usage if ARGV.include?("--help")
+
+REWORK_MARKER = "\u2702\uFE0F"
+
+users = if user_email
+  [User.find_by!(email: user_email)]
+else
+  User.active.to_a
+end
+
+users.each do |user|
+  puts "Processing user: #{user.email}"
+
+  begin
+    client = Gmail::Client.new(user)
+    drafts = client.list_drafts
+
+    matching = []
+    drafts.each_with_index do |draft, i|
+      detail = client.get_draft(draft.id)
+      body = detail.message&.payload&.body&.data || ""
+      if body.include?(REWORK_MARKER)
+        matching << draft
+        subject = detail.message&.payload&.headers&.find { |h| h.name == "Subject" }&.value || "(no subject)"
+        puts "  Found: #{subject}"
+      end
+      puts "  Progress: #{i + 1}/#{drafts.size}" if (i + 1) % 10 == 0
+    end
+
+    puts "  Total matching drafts: #{matching.size}"
+
+    if delete_mode && matching.any?
+      matching.each do |draft|
+        client.trash_draft(draft.id)
+      end
+      puts "  Trashed #{matching.size} drafts"
+    elsif matching.any?
+      puts "  Dry run - use --delete to actually trash drafts"
+    end
+  rescue => e
+    puts "  Error: #{e.message}"
+  end
+end
+
+puts "Done."

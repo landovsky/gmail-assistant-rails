@@ -1,0 +1,88 @@
+#!/usr/bin/env ruby
+
+require_relative "../config/environment"
+
+def usage
+  puts <<~HELP
+    Usage: bin/debug-classify [OPTIONS]
+
+    Run a single email through the classification pipeline with detailed output.
+
+    Options:
+      --sender EMAIL       Sender email address
+      --subject TEXT        Email subject
+      --body TEXT           Email body
+      --thread-id ID       Replay classification from DB by gmail_thread_id
+      --user EMAIL         User context (default: first active user)
+      --llm                Include LLM classification (requires API key)
+      --verbose            Show full pattern matching trace
+      --help               Show this help message
+
+    If no input flags are given, prompts interactively.
+  HELP
+  exit
+end
+
+usage if ARGV.include?("--help")
+
+sender = ARGV.index("--sender") ? ARGV[ARGV.index("--sender") + 1] : nil
+subject = ARGV.index("--subject") ? ARGV[ARGV.index("--subject") + 1] : nil
+body = ARGV.index("--body") ? ARGV[ARGV.index("--body") + 1] : nil
+thread_id = ARGV.index("--thread-id") ? ARGV[ARGV.index("--thread-id") + 1] : nil
+user_email = ARGV.index("--user") ? ARGV[ARGV.index("--user") + 1] : nil
+use_llm = ARGV.include?("--llm")
+verbose = ARGV.include?("--verbose")
+
+user = if user_email
+  User.find_by!(email: user_email)
+else
+  User.active.first || abort("No active users found")
+end
+
+if thread_id
+  email = Email.find_by!(gmail_thread_id: thread_id, user: user)
+  sender ||= email.sender_email
+  subject ||= email.subject
+  body ||= email.body
+  puts "Loaded email from DB: #{email.id}"
+  puts "  Subject: #{subject}"
+  puts "  Sender: #{sender}"
+  puts "  Current classification: #{email.classification} (#{email.confidence})"
+  puts "  Status: #{email.status}"
+  puts
+end
+
+unless sender || subject || body
+  print "Sender email: "
+  sender = $stdin.gets&.chomp
+  print "Subject: "
+  subject = $stdin.gets&.chomp
+  print "Body: "
+  body = $stdin.gets&.chomp
+end
+
+puts "=== Classification Debug ==="
+puts "Sender: #{sender}"
+puts "Subject: #{subject}"
+puts "Body: #{body&.truncate(200)}" if verbose
+puts
+
+begin
+  engine = ClassificationEngine.new(user)
+  result = engine.classify(
+    sender_email: sender,
+    subject: subject,
+    body: body,
+    use_llm: use_llm
+  )
+
+  puts "=== Result ==="
+  puts "Classification: #{result[:classification]}"
+  puts "Confidence: #{result[:confidence]}"
+  puts "Source: #{result[:source]}" if result[:source]
+  puts "Reasoning: #{result[:reasoning]}" if result[:reasoning]
+  puts "Style: #{result[:style]}" if result[:style]
+rescue => e
+  puts "Error during classification: #{e.message}"
+  puts e.backtrace.first(5).join("\n") if verbose
+end

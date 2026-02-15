@@ -6,5 +6,10 @@ module Admin
       result = paginate(scope)
       render json: result
     end
+
+    def show
+      user_label = UserLabel.find(params[:id])
+      render json: user_label
+    end
   end
 end

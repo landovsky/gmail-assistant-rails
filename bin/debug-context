@@ -1,0 +1,97 @@
+#!/usr/bin/env ruby
+
+require_relative "../config/environment"
+
+def usage
+  puts <<~HELP
+    Usage: bin/debug-context [OPTIONS]
+
+    Test context gathering by generating Gmail search queries and fetching related threads.
+
+    Options:
+      --sender EMAIL       Sender email address
+      --subject TEXT        Email subject
+      --body TEXT           Email body
+      --thread-id ID       Load email from DB by gmail_thread_id
+      --user EMAIL         User context (default: first active user)
+      --live               Execute actual Gmail searches (requires OAuth)
+      --help               Show this help message
+
+    By default only generates search queries without executing them.
+  HELP
+  exit
+end
+
+usage if ARGV.include?("--help")
+
+sender = ARGV.index("--sender") ? ARGV[ARGV.index("--sender") + 1] : nil
+subject = ARGV.index("--subject") ? ARGV[ARGV.index("--subject") + 1] : nil
+body = ARGV.index("--body") ? ARGV[ARGV.index("--body") + 1] : nil
+thread_id = ARGV.index("--thread-id") ? ARGV[ARGV.index("--thread-id") + 1] : nil
+user_email = ARGV.index("--user") ? ARGV[ARGV.index("--user") + 1] : nil
+live_mode = ARGV.include?("--live")
+
+user = if user_email
+  User.find_by!(email: user_email)
+else
+  User.active.first || abort("No active users found")
+end
+
+if thread_id
+  email = Email.find_by!(gmail_thread_id: thread_id, user: user)
+  sender ||= email.sender_email
+  subject ||= email.subject
+  body ||= email.body
+  puts "Loaded email from DB: #{email.id}"
+end
+
+puts "=== Context Debug ==="
+puts "Sender: #{sender}"
+puts "Subject: #{subject}"
+puts
+
+begin
+  gatherer = ContextGatherer.new(user)
+  queries = gatherer.generate_queries(
+    sender_email: sender,
+    subject: subject,
+    body: body
+  )
+
+  puts "=== Generated Queries ==="
+  queries.each_with_index do |q, i|
+    puts "  #{i + 1}. #{q}"
+  end
+  puts
+
+  if live_mode
+    puts "=== Live Search Results ==="
+    client = Gmail::Client.new(user)
+    seen_threads = Set.new
+    total = 0
+
+    queries.each do |query|
+      results = client.search_messages(query, max_results: 5)
+      results&.each do |msg|
+        tid = msg.thread_id
+        next if seen_threads.include?(tid)
+        seen_threads << tid
+
+        detail = client.get_message(msg.id, format: "metadata", metadata_headers: %w[Subject From])
+        msg_subject = detail.payload&.headers&.find { |h| h.name == "Subject" }&.value
+        msg_from = detail.payload&.headers&.find { |h| h.name == "From" }&.value
+        puts "  Thread #{tid}: #{msg_subject} (from: #{msg_from})"
+        total += 1
+        break if total >= 5
+      end
+      break if total >= 5
+    end
+
+    puts "  Found #{seen_threads.size} related threads"
+  else
+    puts "Dry run - use --live to execute Gmail searches"
+  end
+rescue => e
+  puts "Error: #{e.message}"
+  puts e.backtrace.first(5).join("\n")
+end

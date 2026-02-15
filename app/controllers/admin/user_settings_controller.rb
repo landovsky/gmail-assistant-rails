@@ -6,5 +6,10 @@ module Admin
       result = paginate(scope)
       render json: result
     end
+
+    def show
+      user_setting = UserSetting.find(params[:id])
+      render json: user_setting
+    end
   end
 end

@@ -1,7 +1,8 @@
 class BasicAuthMiddleware
   PUBLIC_PATHS = [
     %r{\A/webhook/},
-    %r{\A/api/health\z}
+    %r{\A/api/health\z},
+    %r{\A/admin/statics/}
   ].freeze
 
   def initialize(app)

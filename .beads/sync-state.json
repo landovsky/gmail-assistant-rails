@@ -1,0 +1,7 @@
+{
+  "last_failure": "2026-02-15T07:50:55.952414+01:00",
+  "failure_count": 1,
+  "backoff_until": "2026-02-15T07:51:25.952414+01:00",
+  "needs_manual_sync": false,
+  "failure_reason": "git pull failed in worktree: exit status 128\nFrom github.com:landovsky/gmail-assistant-rails\n * branch            beads-sync -\u003e FETCH_HEAD\nwarning: fetch updated the current branch head.\nfast-forwarding your working tree from\ncommit a8b762f903f341cd51d2e0e12ed114828ce1a8dc.\nerror: Your local changes to the following files would be overwritten by merge:\n\t.beads/issues.jsonl\nPlease commit your changes or stash them before you merge.\nAborting\nfatal: Cannot fast-forward your working tree.\nAfter making sure that you saved anything precious from\n$ git diff a8b762f903f341cd51d2e0e12ed114828ce1a8dc\noutput, run\n$ git reset --hard\nto recover.\n"
+}

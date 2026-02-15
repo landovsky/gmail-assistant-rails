@@ -76,6 +76,21 @@ module Gmail
       raise
     end
 
+    # Renew watches for all active users
+    # Called by the daily scheduled job to ensure watches don't expire
+    def self.renew_all_watches
+      User.find_each do |user|
+        Rails.logger.info "Renewing watch for user #{user.id}"
+
+        begin
+          WatchManager.new(user).setup_watch!
+        rescue => e
+          Rails.logger.error "Failed to renew watch for user #{user.id}: #{e.class} - #{e.message}"
+          # Continue processing other users even if one fails
+        end
+      end
+    end
+
     # Renew watches for all users that are expiring soon
     def self.renew_expiring_watches
       cutoff = RENEW_BEFORE_HOURS.hours.from_now

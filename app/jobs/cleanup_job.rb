@@ -48,6 +48,19 @@ class CleanupJob < ApplicationJob
     deleted_count
   end
 
+  # Archive old processed emails
+  # Removes database records for emails that have been archived/sent/skipped
+  # @param days [Integer] Number of days to keep (default 30)
+  def self.cleanup_old_emails(days = 30)
+    cutoff_date = days.days.ago
+    deleted_count = Email.where(status: %w[archived sent skipped])
+                         .where("acted_at < ? OR (acted_at IS NULL AND processed_at < ?)", cutoff_date, cutoff_date)
+                         .delete_all
+
+    Rails.logger.info "Archived #{deleted_count} old emails (older than #{days} days)"
+    deleted_count
+  end
+
   private
 
   # Handle the "Done" label action

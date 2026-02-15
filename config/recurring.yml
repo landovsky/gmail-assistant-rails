@@ -11,11 +11,33 @@
 
 # Default configuration for all environments
 default: &default
-  # Fallback email sync - runs every 15 minutes
-  # Safety net for missed Pub/Sub notifications
+  # Watch renewal - runs daily
+  # Renews Gmail watches that expire after 7 days
+  watch_renewal:
+    command: "WatchManager.renew_all_watches"
+    schedule: every day at 3am
+    queue: default
+
+  # Fallback email sync (incremental) - runs every 5 minutes
+  # Safety net for missed Pub/Sub notifications using History API
   sync_fallback:
     command: "SyncJob.sync_all_users"
-    schedule: every 15 minutes
+    schedule: every 5 minutes
+    queue: default
+
+  # Full sync (catch-up scan) - runs every hour
+  # Scans inbox for unlabeled emails that may have been missed
+  # Uses Gmail Search API to catch emails missed by History API
+  full_sync:
+    command: "SyncJob.full_sync_all_users"
+    schedule: every hour
+    queue: default
+
+  # Weekly cleanup of old processed emails
+  # Archives emails older than 30 days
+  cleanup_old_emails:
+    command: "CleanupJob.cleanup_old_emails(30)"
+    schedule: every week on sunday at 1am
     queue: default
 
   # Daily cleanup of old completed/failed jobs
